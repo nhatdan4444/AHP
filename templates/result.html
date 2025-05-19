@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kết quả AHP</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .table-container {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .toggle-section {
+            cursor: pointer;
+        }
+        .toggle-section:hover {
+            color: #2563eb;
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-6">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Kết quả AHP</h1>
+
+        <!-- Bước 1: Ma trận tiêu chí -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4 toggle-section" onclick="toggleSection('step1')">
+                <i class="fas fa-chevron-down mr-2"></i>
+                <span class="tooltip">
+                    Bước 1: Ma trận tiêu chí và trọng số
+                    <span class="tooltiptext">Ma trận tiêu chí thể hiện mức độ ưu tiên giữa các tiêu chí, trọng số thể hiện tầm quan trọng của từng tiêu chí.</span>
+                </span>
+            </h2>
+            <div id="step1">
+                <h3 class="text-lg font-medium text-gray-600 mb-2">Ma trận so sánh tiêu chí</h3>
+                <div class="table-container">
+                    <table class="w-full border-collapse">
+                        <thead>
+                            <tr class="bg-gray-200">
+                                <th class="p-3 text-left"></th>
+                                {% for label in criteria_matrix.labels %}
+                                <th class="p-3 text-left">{{ label }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for i in range(criteria_matrix.labels|length) %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="p-3">{{ criteria_matrix.labels[i] }}</td>
+                                {% for j in range(criteria_matrix.labels|length) %}
+                                <td class="p-3">{{ '%.4f' % criteria_matrix.matrix[i][j] }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <h3 class="text-lg font-medium text-gray-600 mt-4 mb-2">Trọng số và chỉ số nhất quán</h3>
+                <div class="table-container">
+                    <table class="w-full border-collapse">
+                        <thead>
+                            <tr class="bg-gray-200">
+                                <th class="p-3 text-left">Tiêu chí</th>
+                                <th class="p-3 text-left">Trọng số</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for i in range(criteria_matrix.labels|length) %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="p-3">{{ criteria_matrix.labels[i] }}</td>
+                                <td class="p-3">{{ '%.4f' % criteria_matrix.weights[i] }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-4">
+                    <p class="text-gray-600">Giá trị riêng lớn nhất (λ_max): {{ '%.4f' % criteria_matrix.lambda_max }}</p>
+                    <p class="text-gray-600">Chỉ số nhất quán (CI): {{ '%.4f' % criteria_matrix.consistency_index }}</p>
+                    <p class="text-gray-600">Tỷ lệ nhất quán (CR): {{ '%.4f' % criteria_matrix.consistency_ratio }}</p>
+                </div>
+                <h3 class="text-lg font-medium text-gray-600 mt-4 mb-2">Biểu đồ trọng số tiêu chí</h3>
+                <img src="{{ url_for('static', filename=criteria_matrix.chart) }}" alt="Biểu đồ trọng số tiêu chí" class="w-full rounded-lg">
+            </div>
+        </div>
+
+        <!-- Bước 2: Ma trận phương án -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4 toggle-section" onclick="toggleSection('step2')">
+                <i class="fas fa-chevron-down mr-2"></i>
+                <span class="tooltip">
+                    Bước 2: Ma trận phương án theo từng tiêu chí
+                    <span class="tooltiptext">Ma trận phương án thể hiện mức độ ưu tiên giữa các phương án theo từng tiêu chí.</span>
+                </span>
+            </h2>
+            <div id="step2">
+                {% for alt_matrix in alternatives_matrices %}
+                <h3 class="text-lg font-medium text-gray-600 mb-2">Tiêu chí: {{ alt_matrix.criteria_name }}</h3>
+                <h4 class="text-md font-medium text-gray-500 mb-2">Ma trận so sánh phương án</h4>
+                <div class="table-container">
+                    <table class="w-full border-collapse">
+                        <thead>
+                            <tr class="bg-gray-200">
+                                <th class="p-3 text-left"></th>
+                                {% for label in alt_matrix.labels %}
+                                <th class="p-3 text-left">{{ label }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for i in range(alt_matrix.labels|length) %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="p-3">{{ alt_matrix.labels[i] }}</td>
+                                {% for j in range(alt_matrix.labels|length) %}
+                                <td class="p-3">{{ '%.4f' % alt_matrix.matrix[i][j] }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <h4 class="text-md font-medium text-gray-500 mt-4 mb-2">Trọng số và chỉ số nhất quán</h4>
+                <div class="table-container">
+                    <table class="w-full border-collapse">
+                        <thead>
+                            <tr class="bg-gray-200">
+                                <th class="p-3 text-left">Phương án</th>
+                                <th class="p-3 text-left">Trọng số</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for i in range(alt_matrix.labels|length) %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="p-3">{{ alt_matrix.labels[i] }}</td>
+                                <td class="p-3">{{ '%.4f' % alt_matrix.weights[i] }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-4">
+                    <p class="text-gray-600">Giá trị riêng lớn nhất (λ_max): {{ '%.4f' % alt_matrix.lambda_max }}</p>
+                    <p class="text-gray-600">Chỉ số nhất quán (CI): {{ '%.4f' % alt_matrix.consistency_index }}</p>
+                    <p class="text-gray-600">Tỷ lệ nhất quán (CR): {{ '%.4f' % alt_matrix.consistency_ratio }}</p>
+                </div>
+                <h4 class="text-md font-medium text-gray-500 mt-4 mb-2">Biểu đồ trọng số phương án</h4>
+                <img src="{{ url_for('static', filename=alt_matrix.chart) }}" alt="Biểu đồ trọng số phương án" class="w-full rounded-lg">
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Bước 3: Tính điểm số -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4 toggle-section" onclick="toggleSection('step3')">
+                <i class="fas fa-chevron-down mr-2"></i>
+                <span class="tooltip">
+                    Bước 3: Điểm số của từng phương án
+                    <span class="tooltiptext">Điểm số được tính bằng cách nhân trọng số tiêu chí với trọng số phương án theo từng tiêu chí.</span>
+                </span>
+            </h2>
+            <div id="step3">
+                <div class="table-container">
+                    <table class="w-full border-collapse">
+                        <thead>
+                            <tr class="bg-gray-200">
+                                <th class="p-3 text-left">Phương án</th>
+                                {% for crit in criteria_matrix.labels %}
+                                <th class="p-3 text-left">{{ crit }} (Trọng số: {{ '%.4f' % criteria_matrix.weights[loop.index0] }})</th>
+                                {% endfor %}
+                                <th class="p-3 text-left">Điểm số cuối cùng</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for detail in score_details %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="p-3">{{ detail.alternative }}</td>
+                                {% for score, weighted_score in zip(detail.scores_per_criteria, detail.weighted_scores) %}
+                                <td class="p-3">{{ '%.4f' % score }} (Có trọng số: {{ '%.4f' % weighted_score }})</td>
+                                {% endfor %}
+                                <td class="p-3">{{ '%.4f' % detail.final_score }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bước 4: Xếp hạng -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4 toggle-section" onclick="toggleSection('step4')">
+                <i class="fas fa-chevron-down mr-2"></i>
+                <span class="tooltip">
+                    Bước 4: Xếp hạng cuối cùng
+                    <span class="tooltiptext">Phương án được xếp hạng dựa trên điểm số cuối cùng, từ cao đến thấp.</span>
+                </span>
+            </h2>
+            <div id="step4">
+                <div class="table-container">
+                    <table class="w-full border-collapse">
+                        <thead>
+                            <tr class="bg-gray-200">
+                                <th class="p-3 text-left">Xếp hạng</th>
+                                <th class="p-3 text-left">Phương án</th>
+                                <th class="p-3 text-left">Điểm số</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for i, item in enumerate(ranking) %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="p-3">{{ i + 1 }}</td>
+                                <td class="p-3">{{ item.name }}</td>
+                                <td class="p-3">{{ '%.4f' % item.score }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <h3 class="text-lg font-medium text-gray-600 mt-4 mb-2">Biểu đồ xếp hạng</h3>
+                <img src="{{ url_for('static', filename=chart) }}" alt="Biểu đồ xếp hạng" class="w-full rounded-lg">
+            </div>
+        </div>
+
+        <div class="text-center space-x-4">
+            <a href="{{ url_for('index') }}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+                <i class="fas fa-arrow-left mr-2"></i>Quay lại trang chính
+            </a>
+            <a href="{{ url_for('export_results', result_id=result_id) }}" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
+                <i class="fas fa-file-excel mr-2"></i>Xuất kết quả ra PDF
+            </a>
+        </div>
+    </div>
+
+    <script>
+        function toggleSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            const icon = section.previousElementSibling.querySelector('i');
+            if (section.style.display === 'none') {
+                section.style.display = 'block';
+                icon.classList.remove('fa-chevron-right');
+                icon.classList.add('fa-chevron-down');
+            } else {
+                section.style.display = 'none';
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-right');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.toggle-section + div').forEach(section => {
+                section.style.display = 'none';
+                section.previousElementSibling.querySelector('i').classList.remove('fa-chevron-down');
+                section.previousElementSibling.querySelector('i').classList.add('fa-chevron-right');
+            });
+        });
+    </script>
+</body>
+</html>
